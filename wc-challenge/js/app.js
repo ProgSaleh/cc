@@ -10,9 +10,9 @@ const getWordCount = ({ fileStr }) =>
   fileStr
     .replace(/[\r\n\t]+/g, ' ')
     .split(' ')
-    .filter((word) => word)?.length;
+    ?.filter((word) => word)?.length;
 
-const getCharachterCount = ({ fileStr }) => fileStr.split('')?.length;
+const getCharachterCount = ({ fileStr }) => fileStr.length;
 
 const getDefaultCount = ({ fileStr, size }) => {
   const lineCount = getLineCount({ fileStr });
@@ -22,45 +22,10 @@ const getDefaultCount = ({ fileStr, size }) => {
   return { lineCount, wordCount, byteCount };
 };
 
-let file;
-let fileStr;
-
-// default option.
-if (argv.length === 1) {
-  const [fileName] = argv;
-  file = fs.readFileSync(fileName);
-  fileStr = file.toString();
-
-  fs.stat(`./${fileName}`, (err, stat) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    const { size } = stat;
-    const { lineCount, wordCount, byteCount } = getDefaultCount({
-      fileStr,
-      fileName,
-      size,
-    });
-    console.log(`${lineCount}\t${wordCount}\t${byteCount} ${fileName}`);
-  });
-} else {
-  const [option, fileName] = argv;
-  file = fs.readFileSync(fileName);
-  fileStr = file.toString();
-
+const printInfo = ({ option, fileName, fileStr, size }) => {
   switch (option) {
     case '-c': {
-      fs.stat(`./${fileName}`, (err, stat) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-
-        const { size } = stat;
-        console.log(`${getByteCount({ size })} ${fileName}`);
-      });
+      console.log(`${getByteCount({ size })} ${fileName}`);
       break;
     }
     case '-l': {
@@ -75,5 +40,37 @@ if (argv.length === 1) {
       console.log(`${getCharachterCount({ fileStr })} ${fileName}`);
       break;
     }
+    default: {
+      const { lineCount, wordCount, byteCount } = getDefaultCount({
+        fileStr,
+        size,
+      });
+      console.log(`${lineCount}\t${wordCount}\t${byteCount} ${fileName}`);
+      break;
+    }
   }
-}
+};
+
+const main = () => {
+  if (argv.length < 1 || argv.length > 2) {
+    console.error('Invalid entry');
+    process.exit(1);
+  }
+
+  const [existingOption, existingFileName] = argv;
+  const option = existingFileName ? existingOption : null;
+  const fileName = existingFileName || existingOption;
+
+  try {
+    const file = fs.readFileSync(fileName);
+    const fileStr = file.toString();
+    const size = fs.statSync(fileName).size;
+
+    printInfo({ option, fileName, fileStr, size });
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    console.log({ 'err>>>': err });
+  }
+};
+
+main();
